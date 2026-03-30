@@ -7,19 +7,17 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import pt.unl.fct.di.adc.firstwebapp.dto.BaseRequest;
 import pt.unl.fct.di.adc.firstwebapp.dto.BaseResponse;
-import pt.unl.fct.di.adc.firstwebapp.dto.LoginData;
+import pt.unl.fct.di.adc.firstwebapp.dto.EmptyInput;
 import pt.unl.fct.di.adc.firstwebapp.service.ServiceRegistry;
 
-@Path("/login")
-
+@Path("/showauthsessions")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public class LoginResource {
+public class ShowAuthenticatedSessionsResource {
+
     @POST
-    public BaseResponse<?> login(BaseRequest<LoginData> request) {
+    public BaseResponse<?> showAuthenticatedSessions(BaseRequest<EmptyInput> request) {
         return BaseResponse.success(
-                ServiceRegistry.userService().login(request.getInput())
-        );
+                ServiceRegistry.userService().showAuthenticatedSessions(request.getToken()));
     }
 }
-

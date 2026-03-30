@@ -7,19 +7,17 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import pt.unl.fct.di.adc.firstwebapp.dto.BaseRequest;
 import pt.unl.fct.di.adc.firstwebapp.dto.BaseResponse;
-import pt.unl.fct.di.adc.firstwebapp.dto.LoginData;
+import pt.unl.fct.di.adc.firstwebapp.dto.CreateAccountData;
 import pt.unl.fct.di.adc.firstwebapp.service.ServiceRegistry;
 
-@Path("/login")
-
+@Path("/createaccount")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public class LoginResource {
+public class CreateAccountResource {
+
     @POST
-    public BaseResponse<?> login(BaseRequest<LoginData> request) {
+    public BaseResponse<?> createAccount(BaseRequest<CreateAccountData> request) {
         return BaseResponse.success(
-                ServiceRegistry.userService().login(request.getInput())
-        );
+                ServiceRegistry.userService().createAccount(request.getInput()));
     }
 }
-

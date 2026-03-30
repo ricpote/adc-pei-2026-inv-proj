@@ -7,19 +7,19 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import pt.unl.fct.di.adc.firstwebapp.dto.BaseRequest;
 import pt.unl.fct.di.adc.firstwebapp.dto.BaseResponse;
-import pt.unl.fct.di.adc.firstwebapp.dto.LoginData;
+import pt.unl.fct.di.adc.firstwebapp.dto.LogoutData;
 import pt.unl.fct.di.adc.firstwebapp.service.ServiceRegistry;
 
-@Path("/login")
-
+@Path("/logout")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public class LoginResource {
+public class LogoutResource {
+
     @POST
-    public BaseResponse<?> login(BaseRequest<LoginData> request) {
+    public BaseResponse<?> logout(BaseRequest<LogoutData> request) {
         return BaseResponse.success(
-                ServiceRegistry.userService().login(request.getInput())
-        );
+                ServiceRegistry.userService().logout(
+                        request.getToken(),
+                        request.getInput().getUsername()));
     }
 }
-

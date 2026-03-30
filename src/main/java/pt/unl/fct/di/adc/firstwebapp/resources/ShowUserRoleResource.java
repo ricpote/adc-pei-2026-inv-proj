@@ -7,19 +7,19 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import pt.unl.fct.di.adc.firstwebapp.dto.BaseRequest;
 import pt.unl.fct.di.adc.firstwebapp.dto.BaseResponse;
-import pt.unl.fct.di.adc.firstwebapp.dto.LoginData;
+import pt.unl.fct.di.adc.firstwebapp.dto.ShowUserRoleData;
 import pt.unl.fct.di.adc.firstwebapp.service.ServiceRegistry;
 
-@Path("/login")
-
+@Path("/showuserrole")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
-public class LoginResource {
+public class ShowUserRoleResource {
+
     @POST
-    public BaseResponse<?> login(BaseRequest<LoginData> request) {
+    public BaseResponse<?> showUserRole(BaseRequest<ShowUserRoleData> request) {
         return BaseResponse.success(
-                ServiceRegistry.userService().login(request.getInput())
-        );
+                ServiceRegistry.userService().ShowUserRole(
+                        request.getToken(),
+                        request.getInput().getUsername()));
     }
 }
-
