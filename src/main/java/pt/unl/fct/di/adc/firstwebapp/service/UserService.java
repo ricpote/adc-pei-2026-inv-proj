@@ -1,24 +1,24 @@
 package pt.unl.fct.di.adc.firstwebapp.service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import pt.unl.fct.di.adc.firstwebapp.dto.CreateAccountData;
+import pt.unl.fct.di.adc.firstwebapp.dto.LoginData;
 import pt.unl.fct.di.adc.firstwebapp.exception.ApiException;
+import pt.unl.fct.di.adc.firstwebapp.model.AuthToken;
 import pt.unl.fct.di.adc.firstwebapp.model.ErrorCode;
 import pt.unl.fct.di.adc.firstwebapp.model.Role;
-import pt.unl.fct.di.adc.firstwebapp.model.AuthToken;
 import pt.unl.fct.di.adc.firstwebapp.model.User;
 import pt.unl.fct.di.adc.firstwebapp.repository.SessionRepository;
 import pt.unl.fct.di.adc.firstwebapp.repository.UserRepository;
 import pt.unl.fct.di.adc.firstwebapp.util.PasswordUtil;
 import pt.unl.fct.di.adc.firstwebapp.util.SessionSummaryData;
+import pt.unl.fct.di.adc.firstwebapp.util.TokenUtil;
 import pt.unl.fct.di.adc.firstwebapp.util.UserSummaryData;
 import pt.unl.fct.di.adc.firstwebapp.util.ValidationUtil;
-import pt.unl.fct.di.adc.firstwebapp.dto.LoginData;
-import pt.unl.fct.di.adc.firstwebapp.util.TokenUtil;
-import java.util.List;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class UserService {
 
@@ -42,7 +42,8 @@ public class UserService {
 
         ValidationUtil.require(
                 input.getPassword().equals(input.getConfirmation()),
-                ErrorCode.INVALID_INPUT);
+                ErrorCode.INVALID_INPUT
+        );
 
         if (userRepository.findByUsername(input.getUsername()).isPresent()) {
             throw new ApiException(ErrorCode.USER_ALREADY_EXISTS);
@@ -58,11 +59,12 @@ public class UserService {
         User user = new User(
                 input.getUsername(),
                 input.getUsername(),
-                input.getPassword(),
+                PasswordUtil.hashPassword(input.getPassword()),
                 input.getEmail(),
                 input.getPhone(),
                 input.getAddress(),
-                role);
+                role
+        );
 
         userRepository.save(user);
 
@@ -81,15 +83,16 @@ public class UserService {
         User user = userRepository.findByUsername(input.getUsername())
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
 
-        boolean validPassword = input.getPassword().equals(user.getPassword());
+        boolean validPassword = PasswordUtil.checkPassword(
+                input.getPassword(),
+                user.getPassword()
+        );
 
         if (!validPassword) {
             throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        AuthToken token = TokenUtil.generateToken(user.getUserId(),
-                user.getRole());
-
+        AuthToken token = TokenUtil.generateToken(user.getUserId(), user.getRole());
         sessionRepository.save(token);
 
         Map<String, Object> result = new HashMap<>();
@@ -99,11 +102,10 @@ public class UserService {
     }
 
     public List<UserSummaryData> ShowUsers(AuthToken token) {
-
         AuthToken storedToken = sessionService.validateToken(token);
         Role role = Role.fromString(storedToken.getRole());
-        if (autorizationService.canShowUsers(role)) {
 
+        if (autorizationService.canShowUsers(role)) {
             return userRepository.findAll().stream()
                     .map(user -> new UserSummaryData(user.getUsername(), user.getRole()))
                     .collect(Collectors.toList());
@@ -113,12 +115,10 @@ public class UserService {
     }
 
     public UserSummaryData ShowUserRole(AuthToken token, String username) {
-
         AuthToken storedToken = sessionService.validateToken(token);
         Role role = Role.fromString(storedToken.getRole());
 
         if (autorizationService.canShowUserRole(role)) {
-
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
             return new UserSummaryData(user.getUsername(), user.getRole());
@@ -157,8 +157,8 @@ public class UserService {
 
         userRepository.delete(user.getUserId());
         sessionRepository.deleteByUserId(user.getUsername());
-        return "Account deleted successfully";
 
+        return "Account deleted successfully";
     }
 
     public String changeUserRole(AuthToken token, String username, String newRole) {
@@ -178,6 +178,7 @@ public class UserService {
         } catch (IllegalArgumentException e) {
             throw new ApiException(ErrorCode.INVALID_INPUT);
         }
+
         user.setRole(updatedRole);
         userRepository.update(user);
 
@@ -196,6 +197,7 @@ public class UserService {
                 targetUser)) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
+
         if (updates.containsKey("username")) {
             throw new ApiException(ErrorCode.INVALID_INPUT);
         }
@@ -215,23 +217,28 @@ public class UserService {
     }
 
     public String changePassword(AuthToken token, String username, String oldPassWord, String newPassword) {
+        ValidationUtil.requireNotBlank(oldPassWord);
+        ValidationUtil.requireNotBlank(newPassword);
+
         AuthToken storedToken = sessionService.validateToken(token);
         Role requesterRole = Role.fromString(storedToken.getRole());
 
         User targetUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
-        if (!targetUser.getPassword().equals(oldPassWord)) {
+
+        if (!PasswordUtil.checkPassword(oldPassWord, targetUser.getPassword())) {
             throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
         }
+
         if (!autorizationService.canChangePassword(
-                new User(storedToken.getUsername(), storedToken.getUsername(), oldPassWord, null, null, null,
-                        requesterRole),
+                new User(storedToken.getUsername(), storedToken.getUsername(), null, null, null, null, requesterRole),
                 targetUser)) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
 
-        targetUser.setPassword(newPassword);
+        targetUser.setPassword(PasswordUtil.hashPassword(newPassword));
         userRepository.update(targetUser);
+
         return "Password changed successfully";
     }
 
@@ -248,5 +255,4 @@ public class UserService {
         sessionRepository.deleteByUserId(username);
         return "Logged out successfully";
     }
-
 }
